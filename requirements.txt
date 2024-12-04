@@ -1,6 +1,6 @@
 PySide6
 re
 math
-randm
+random
 sympy
 notifypy
