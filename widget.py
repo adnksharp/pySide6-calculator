@@ -2,6 +2,8 @@ import sys, re
 from random import *
 from math import * 
 from sympy import parse_expr, solve, symbols
+import pyperclip as xclip
+from notifypy import Notify as noty
 
 from PySide6.QtWidgets import QApplication, QWidget
 from PySide6.QtCore import QObject, QEvent, QTimer
@@ -132,6 +134,7 @@ class Widget(QWidget):
         self.out = ''
         self.srtcur = ' '
         self.strout = '-'
+        self.mod = 0
         self.mode = [0, 0]
         
         self.eventFilter = KeyPress(parent=self)
@@ -140,6 +143,9 @@ class Widget(QWidget):
         self.timer = QTimer()
         self.timer.setInterval(300)
         self.timer.timeout.connect(self.inputBlinks)
+        
+        self.noty = noty()
+        self.noty.title = 'Salida copiada'
         
         self.ui.pushButton.clicked.connect(lambda x: self.ButtonPress('0'))
         self.ui.pushButton_2.clicked.connect(lambda x: self.ButtonPress('.'))
@@ -174,8 +180,29 @@ class Widget(QWidget):
         self.timer.start()
         
     def ButtonPress(self, opt):
+        # mod 1 = alpha
+        # mod 2 = shift
         if ((opt.isdigit() or re.search(r'[^A-Za-z0-9]', opt)) and opt != '=') or opt == 'E':
-            self.form += opt
+            if self.mod == 0:
+                self.form += opt
+            elif self.mod == 1:
+                if opt == '0':
+                    self.form += '(' + xclip.paste() + ')'
+                elif opt == '.':
+                    self.form += 'rand(0,'
+                elif opt == 'E':
+                    self.form += 'e^('
+                self.mod = 0
+            else:
+                if opt == '0':
+                    xclip.copy(self.strout)
+                    self.noty.message = self.strout
+                    self.noty.send()
+                elif opt == '.':
+                    self.form += 'rand'
+                elif opt == 'E':
+                    self.form += 'pi'
+                self.mod = 0
         elif opt == 'sin' or opt == 'cos' or opt == 'tan':
             self.form += opt + '('
         else:
@@ -212,6 +239,12 @@ class Widget(QWidget):
                     if self.mode[1] == 1:
                         self.ui.pushButton_37.setText('ENG')
                         
+                case 'alpha':
+                    self.mod = 1
+
+                case 'shift':
+                    self.mod = 2
+        
         self.solve()
         
     def solve(self):
@@ -269,6 +302,14 @@ class Widget(QWidget):
         
     def inputBlinks(self):
         self.srtcur = '_' if self.srtcur == ' ' else ' '
+        
+        match self.mod:
+            case 0:
+                self.ui.inLabel.setStyleSheet('color: #fff')
+            case 1:
+                self.ui.inLabel.setStyleSheet('color: #5bf2fa')
+            case 2:
+                self.ui.inLabel.setStyleSheet('color: #f75d54')
         self.ui.inLabel.setText(str(self.form + self.srtcur + self.cur))
         self.ui.outLabel.setText(self.strout)
 
