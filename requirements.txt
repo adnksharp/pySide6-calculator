@@ -1,1 +1,6 @@
 PySide6
+re
+math
+randm
+sympy
+notifypy
